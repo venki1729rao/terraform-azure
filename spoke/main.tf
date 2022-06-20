@@ -2,30 +2,6 @@ provider "azurerm" {
   features {}
 }
 
-terraform {
-   backend "azurerm" {
-         resource_group_name = "storage-rg"
-		 storage_account_name = "remtfstate"
-		 container_name = "tfstatefiles"
-		 key = "npterraform.tfstate"
-  }
-}
- 
-module "hub" {
-    source = "../hub"
-}
-
-/*
-data "azurerm_firewall" "Hub" {
-  name                = "Hub-vnet-firewall"
-  resource_group_name = "HUB-resource-group"
-}
-
-data "azurerm_virtual_network" "Hub" {
-  name                = "HUB-vnet"
-  resource_group_name = "HUB-resource-group"
-}*/
-
 resource "azurerm_resource_group" "rg" {
   name     = var.resourcegroup_name
   location = var.location
