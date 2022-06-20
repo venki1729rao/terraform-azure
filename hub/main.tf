@@ -11,7 +11,7 @@ resource "azurerm_virtual_network" "hub_vnet" {
   name                = var.vnet_name
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["10.0.0.0/16"]
+  address_space       = var.address_space
   tags = {
     environment = var.env
   }
@@ -22,7 +22,7 @@ resource "azurerm_subnet" "firewall_subnet" {
     name                 = var.subnet_name
     resource_group_name  = azurerm_resource_group.rg.name
     virtual_network_name = azurerm_virtual_network.hub_vnet.name
-    address_prefixes     = ["10.0.0.0/26"]
+    address_prefixes     = var.subnet_prefix
 }
 
 resource "azurerm_public_ip" "firewall_ip" {
