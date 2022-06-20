@@ -17,5 +17,9 @@ module "hub" {
 
 module "spoke" {
     source = "../spoke"
+	firewall_ip  = module.hub.firewall_ip
+	hubvnetid	 = module.hub.hubvnetid
+	hubvnetrg	 = module.hub.hubvnetrg
+	hubvnetname	 = module.hub.hubvnetname
 }	
 

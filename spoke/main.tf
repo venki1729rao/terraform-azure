@@ -36,7 +36,7 @@ resource "azurerm_route_table" "internet_route" {
     name           = var.route_name
     address_prefix = var.internet_address
     next_hop_type  = "VirtualAppliance"
-	next_hop_in_ip_address = module.hub.firewall_ip
+	next_hop_in_ip_address = var.firewall_ip
   }
 
   tags = {
@@ -54,12 +54,12 @@ resource "azurerm_virtual_network_peering" "spoketohub" {
   name                      = "spoketohub"
   resource_group_name       = azurerm_resource_group.rg.name
   virtual_network_name      = azurerm_virtual_network.spoke_vnet.name
-  remote_virtual_network_id = module.hub.hubvnetid
+  remote_virtual_network_id = var.hubvnetid
 }
 
 resource "azurerm_virtual_network_peering" "hubtospoke" {
   name                      = "hubtospoke"
-  resource_group_name       = module.hub.hubvnetrg
-  virtual_network_name      = module.hub.hubvnetname
+  resource_group_name       = var.hubvnetrg
+  virtual_network_name      = var.hubvnetname
   remote_virtual_network_id = azurerm_virtual_network.spoke_vnet.id
 }

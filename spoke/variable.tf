@@ -53,3 +53,21 @@ variable "route_name" {
     description = "route name"
     default = "internetroute"
 }
+
+variable "internet_address" {
+    type = string
+    description = "internet address"
+    default = "0.0.0.0/0"
+}
+
+variable "firewall_ip" {
+}
+
+variable "hubvnetid" {
+}
+
+variable "hubvnetrg" {
+}
+
+variable "hubvnetname" {
+}
