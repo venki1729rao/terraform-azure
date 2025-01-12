@@ -1,0 +1,332 @@
+{
+  "properties": {
+    "displayName": "Enable All VNET Flow Logs",
+    "policyType": "Custom",
+    "mode": "Indexed",
+    "metadata": {
+      "version": "1.1.2",
+      "createdBy": "cd08a315-9add-4209-be6b-5d3dc8afa036",
+      "createdOn": "2025-01-09T17:29:07.8866901Z",
+      "updatedBy": "cd08a315-9add-4209-be6b-5d3dc8afa036",
+      "updatedOn": "2025-01-10T19:21:42.9456525Z"
+    },
+    "version": "1.0.0",
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Enable or disable the execution of the policy"
+        },
+        "allowedValues": [
+          "DeployIfNotExists",
+          "Disabled"
+        ],
+        "defaultValue": "DeployIfNotExists"
+      },
+      "vnetRegion": {
+        "type": "Array",
+        "metadata": {
+          "displayName": "Virtual Networks Region",
+          "description": "Configures for virtual networks in the selected region only.",
+          "strongType": "location"
+        }
+      },
+      "eastusstorageid": {
+        "type": "String",
+        "metadata": {
+          "displayName": "EastUS Storage",
+          "description": "Configures for virtual networks in the selected region only."
+        }
+      },
+      "westeuropestorageid": {
+        "type": "String",
+        "metadata": {
+          "displayName": "WestEurope Storage",
+          "description": "Configures for virtual networks in the selected region only."
+        }
+      },
+      "disabledstorageid": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Default Storage",
+          "description": "Configures for virtual networks in the selected region only."
+        },
+        "defaultValue": "StorageAccount"
+      },
+      "timeInterval": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Traffic analytics processing interval in minutes",
+          "description": "Traffic analytics processes blobs at the selected frequency."
+        },
+        "allowedValues": [
+          "10",
+          "60"
+        ],
+        "defaultValue": "60"
+      },
+      "workspaceResourceId": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Workspace Resource ID",
+          "description": "Log Analytics workspace resource id",
+          "assignPermissions": true
+        }
+      },
+      "workspaceRegion": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Workspace Region",
+          "description": "Log Analytics workspace region",
+          "strongType": "location"
+        }
+      },
+      "networkWatcherRG": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Network Watchers RG",
+          "description": "The name of the resource group where the flowLog resources will be created. This will be used only if a deployment is required. This is the resource group where the Network Watchers are located.",
+          "strongType": "existingResourceGroups"
+        },
+        "defaultValue": "NetworkWatcherRG"
+      },
+      "retentionDays": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Number of days to retain flowlogs",
+          "description": "The number of days for which flowlog data will be retained in storage account. If you want to retain data forever and do not want to apply any retention policy, set retention (days) to 0."
+        },
+        "defaultValue": "30"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Network/virtualNetworks"
+          },
+          {
+            "field": "location",
+            "in": "[parameters('vnetRegion')]"
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]",
+        "details": {
+          "type": "Microsoft.Network/networkWatchers/flowlogs",
+          "resourceGroupName": "[if(empty(coalesce(field('Microsoft.Network/virtualNetworks/flowLogs'))), parameters('networkWatcherRG'), split(first(field('Microsoft.Network/virtualNetworks/flowLogs[*].id')), '/')[4])]",
+          "name": "[if(empty(coalesce(field('Microsoft.Network/virtualNetworks/flowLogs[*].id'))), 'null/null', concat(split(first(field('Microsoft.Network/virtualNetworks/flowLogs[*].id')), '/')[8], '/', split(first(field('Microsoft.Network/virtualNetworks/flowLogs[*].id')), '/')[10]))]",
+          "existenceCondition": {
+            "anyof": [
+              {
+                "field": "Microsoft.Network/networkWatchers/flowLogs/enabled",
+                "equals": "false"
+              },
+              {
+                "allof": [
+                  {
+                    "field": "Microsoft.Network/networkWatchers/flowLogs/enabled",
+                    "equals": "true"
+                  },
+                  {
+                    "field": "Microsoft.Network/networkWatchers/flowLogs/storageId",
+                    "equals": "[parameters(concat(field('location'),'storageid'))]"
+                  },
+                  {
+                    "field": "Microsoft.Network/networkWatchers/flowLogs/flowAnalyticsConfiguration.networkWatcherFlowAnalyticsConfiguration.enabled",
+                    "equals": "true"
+                  },
+                  {
+                    "field": "Microsoft.Network/networkWatchers/flowLogs/flowAnalyticsConfiguration.networkWatcherFlowAnalyticsConfiguration.trafficAnalyticsInterval",
+                    "in": [
+                      "10",
+                      "60"
+                    ]
+                  },
+                  {
+                    "field": "Microsoft.Network/networkWatchers/flowLogs/flowAnalyticsConfiguration.networkWatcherFlowAnalyticsConfiguration.workspaceResourceId",
+                    "equals": "[parameters('workspaceResourceId')]"
+                  },
+                  {
+                    "anyof": [
+                      {
+                        "allof": [
+                          {
+                            "value": "[parameters('retentionDays')]",
+                            "equals": "0"
+                          },
+                          {
+                            "anyof": [
+                              {
+                                "field": "Microsoft.Network/networkWatchers/flowLogs/retentionPolicy.days",
+                                "equals": "0"
+                              },
+                              {
+                                "field": "Microsoft.Network/networkWatchers/flowLogs/retentionPolicy.enabled",
+                                "equals": "false"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "allof": [
+                          {
+                            "value": "[parameters('retentionDays')]",
+                            "notequals": "0"
+                          },
+                          {
+                            "field": "Microsoft.Network/networkWatchers/flowLogs/retentionPolicy.days",
+                            "notequals": "0"
+                          },
+                          {
+                            "field": "Microsoft.Network/networkWatchers/flowLogs/retentionPolicy.enabled",
+                            "equals": "true"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "roleDefinitionIds": [
+            "/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+          ],
+          "deployment": {
+            "properties": {
+              "mode": "incremental",
+              "template": {
+                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                "contentVersion": "1.0.0.0",
+                "parameters": {
+                  "timeInterval": {
+                    "type": "string"
+                  },
+                  "workspaceRegion": {
+                    "type": "string"
+                  },
+                  "workspaceResourceId": {
+                    "type": "string"
+                  },
+                  "networkWatcherRG": {
+                    "type": "string"
+                  },
+                  "networkWatcherName": {
+                    "type": "string"
+                  },
+                  "flowlogName": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "targetResource": {
+                    "type": "string"
+                  },
+                  "retentionDays": {
+                    "type": "string"
+                  },
+                  "eastusstorageid": {
+                    "type": "string"
+                  },
+                  "westeuropestorageid": {
+                    "type": "string"
+                  }
+                },
+                "resources": [
+                  {
+                    "type": "Microsoft.Resources/deployments",
+                    "name": "[concat('flowlogDeployment-', uniqueString(parameters('flowlogName')))]",
+                    "apiVersion": "2022-09-01",
+                    "resourceGroup": "[parameters('networkWatcherRG')]",
+                    "properties": {
+                      "mode": "incremental",
+                      "parameters": {},
+                      "template": {
+                        "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                        "contentVersion": "1.0.0.0",
+                        "parameters": {},
+                        "resources": [
+                          {
+                            "type": "Microsoft.Network/networkWatchers/flowLogs",
+                            "name": "[concat(parameters('networkWatcherName'), '/', parameters('flowlogName'))]",
+                            "apiVersion": "2022-09-01",
+                            "location": "[parameters('location')]",
+                            "properties": {
+                              "targetResourceId": "[parameters('targetResource')]",
+                              "storageId": "[parameters(concat(parameters('location'),'storageid'))]",
+                              "enabled": "true",
+                              "flowAnalyticsConfiguration": {
+                                "networkWatcherFlowAnalyticsConfiguration": {
+                                  "enabled": true,
+                                  "workspaceRegion": "[parameters('workspaceRegion')]",
+                                  "workspaceResourceId": "[parameters('workspaceResourceId')]",
+                                  "trafficAnalyticsInterval": "[parameters('timeInterval')]"
+                                }
+                              },
+                              "retentionPolicy": {
+                                "days": "[parameters('retentionDays')]",
+                                "enabled": "true"
+                              },
+                              "format": {
+                                "type": "JSON",
+                                "version": 2
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              "parameters": {
+                "timeInterval": {
+                  "value": "[parameters('timeInterval')]"
+                },
+                "workspaceRegion": {
+                  "value": "[parameters('workspaceRegion')]"
+                },
+                "workspaceResourceId": {
+                  "value": "[parameters('workspaceResourceId')]"
+                },
+                "eastusstorageid": {
+                  "value": "[parameters('eastusstorageid')]"
+                },
+                "westeuropestorageid": {
+                  "value": "[parameters('westeuropestorageid')]"
+                },
+                "networkWatcherRG": {
+                  "value": "[if(empty(coalesce(field('Microsoft.Network/virtualNetworks/flowLogs'))), parameters('networkWatcherRG'), split(first(field('Microsoft.Network/virtualNetworks/flowLogs[*].id')), '/')[4])]"
+                },
+                "networkWatcherName": {
+                  "value": "[if(empty(coalesce(field('Microsoft.Network/virtualNetworks/flowLogs'))), concat('NetworkWatcher_',field('location')), split(first(field('Microsoft.Network/virtualNetworks/flowLogs[*].id')), '/')[8])]"
+                },
+                "flowlogName": {
+                  "value": "[if(empty(coalesce(field('Microsoft.Network/virtualNetworks/flowLogs'))), concat(take(concat(field('name'), '-', resourceGroup().name), 72), '-', 'flowlog'), split(first(field('Microsoft.Network/virtualNetworks/flowLogs[*].id')), '/')[10])]"
+                },
+                "location": {
+                  "value": "[field('location')]"
+                },
+                "targetResource": {
+                  "value": "[concat(resourceGroup().id, '/providers/Microsoft.Network/virtualNetworks/', field('name'))]"
+                },
+                "retentionDays": {
+                  "value": "[parameters('retentionDays')]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "versions": [
+      "1.0.0"
+    ]
+  }
+}

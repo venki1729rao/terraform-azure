@@ -1,0 +1,140 @@
+{
+    "properties": {
+      "displayName": "Disable all NSG Flow logs",
+      "policyType": "Custom",
+      "mode": "Indexed",
+      "metadata": {
+        "version": "1.2.0",
+        "createdBy": "cd08a315-9add-4209-be6b-5d3dc8afa036",
+        "createdOn": "2024-12-24T14:53:55.6104752Z",
+        "updatedBy": "cd08a315-9add-4209-be6b-5d3dc8afa036",
+        "updatedOn": "2024-12-24T17:34:34.8731327Z"
+      },
+      "version": "1.0.0",
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "metadata": {
+            "displayName": "Effect",
+            "description": "Enable or disable the execution of the policy"
+          },
+          "allowedValues": [
+            "DeployIfNotExists",
+            "Disabled"
+          ],
+          "defaultValue": "DeployIfNotExists"
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            {
+              "field": "type",
+              "equals": "Microsoft.Network/networkSecurityGroups"
+            },
+            {
+              "count": {
+                "field": "Microsoft.Network/networkSecurityGroups/flowLogs[*]"
+              },
+              "greater": 0
+            }
+          ]
+        },
+        "then": {
+          "effect": "[parameters('effect')]",
+          "details": {
+            "type": "Microsoft.Network/networkWatchers/flowlogs",
+            "resourceGroupName": "[if(empty(coalesce(field('Microsoft.Network/networkSecurityGroups/flowLogs'))), 'null', split(first(field('Microsoft.Network/networkSecurityGroups/flowLogs[*].id')), '/')[4])]",
+            "name": "[if(empty(coalesce(field('Microsoft.Network/networkSecurityGroups/flowLogs[*].id'))), 'null/null', concat(split(first(field('Microsoft.Network/networkSecurityGroups/flowLogs[*].id')), '/')[8], '/', split(first(field('Microsoft.Network/networkSecurityGroups/flowLogs[*].id')), '/')[10]))]",
+            "existenceCondition": {
+              "field": "Microsoft.Network/networkWatchers/flowLogs/enabled",
+              "equals": "false"
+            },
+            "roleDefinitionIds": [
+              "/providers/microsoft.authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "networkWatcherRG": {
+                      "type": "String"
+                    },
+                    "networkWatcherName": {
+                      "type": "String"
+                    },
+                    "flowlogName": {
+                      "type": "String"
+                    },
+                    "location": {
+                      "type": "String"
+                    },
+                    "targetResource": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "name": "[concat('flowlogDeployment-', uniqueString(parameters('flowlogName')))]",
+                      "apiVersion": "2019-10-01",
+                      "resourceGroup": "[parameters('networkWatcherRG')]",
+                      "properties": {
+                        "mode": "incremental",
+                        "parameters": {},
+                        "template": {
+                          "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "parameters": {},
+                          "resources": [
+                            {
+                              "type": "Microsoft.Network/networkWatchers/flowLogs",
+                              "name": "[concat(parameters('networkWatcherName'), '/', parameters('flowlogName'))]",
+                              "apiVersion": "2019-11-01",
+                              "location": "[parameters('location')]",
+                              "properties": {
+                                "targetResourceId": "[parameters('targetResource')]",
+                                "enabled": "false",
+                                "flowAnalyticsConfiguration": {
+                                  "networkWatcherFlowAnalyticsConfiguration": {
+                                    "enabled": false
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "networkWatcherRG": {
+                    "value": "[if(empty(coalesce(field('Microsoft.Network/networkSecurityGroups/flowLogs'))), 'null', split(first(field('Microsoft.Network/networkSecurityGroups/flowLogs[*].id')), '/')[4])]"
+                  },
+                  "networkWatcherName": {
+                    "value": "[if(empty(coalesce(field('Microsoft.Network/networkSecurityGroups/flowLogs'))), 'null', split(first(field('Microsoft.Network/networkSecurityGroups/flowLogs[*].id')), '/')[8])]"
+                  },
+                  "flowlogName": {
+                    "value": "[if(empty(coalesce(field('Microsoft.Network/networkSecurityGroups/flowLogs'))), concat(take(concat(field('name'), '-', resourceGroup().name), 72), '-', 'flowlog'), split(first(field('Microsoft.Network/networkSecurityGroups/flowLogs[*].id')), '/')[10])]"
+                  },
+                  "location": {
+                    "value": "[field('location')]"
+                  },
+                  "targetResource": {
+                    "value": "[concat(resourceGroup().id, '/providers/Microsoft.Network/networkSecurityGroups/', field('name'))]"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "versions": [
+        "1.0.0"
+      ]
+    }
+  }
